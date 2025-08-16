@@ -1,4 +1,4 @@
-package com.hexvoid.inv.orch.security;
+package com.hexvoid.inv.orch.security.provider;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 import com.hexvoid.inv.orch.exception.ResourceNotFoundException;
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
-import com.hexvoid.inv.orch.logs.service.AuditLogger;
+import com.hexvoid.inv.orch.logs.service.AuditLogRouter;
 import com.hexvoid.inv.orch.security.service.CustomUserDetailsService;
 
 @Component
@@ -20,14 +20,14 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
 	private final CustomUserDetailsService customUserDetailsService;
 	private final PasswordEncoder passwordEncoder;
-	private final AuditLogger auditLogger;
+	private final AuditLogRouter auditLogRouter;
 
 
 	public UsernamePasswordAuthenticationProvider(CustomUserDetailsService customUserDetailsService, 
-			PasswordEncoder passwordEncoder,AuditLogger auditLogger ) {
+			PasswordEncoder passwordEncoder,AuditLogRouter auditLogRouter ) {
 		this.customUserDetailsService=customUserDetailsService;
 		this.passwordEncoder = passwordEncoder;
-		this.auditLogger = auditLogger;
+		this.auditLogRouter = auditLogRouter;
 	}
 
 	/**
@@ -55,13 +55,13 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
 			boolean credentialsMatches = passwordEncoder.matches(password, userDetails.getPassword());
 
-			auditLogger.log(username,
+			auditLogRouter.performLogsOperation(username,
 					AuditEventType.AUTH_ATTEMPT,
 					"User " + username + " Password matches ? =  " + credentialsMatches
 					);
 
 			if (credentialsMatches) {
-				auditLogger.log(username,
+				auditLogRouter.performLogsOperation(username,
 						AuditEventType.AUTH_SUCCESS,
 						"User: " + username + " Authenticated Successfully"
 						);
@@ -73,7 +73,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 
 		} catch (AuthenticationException e) {
 			// Known spring exceptions like BadCredentials
-			auditLogger.log(username,
+			auditLogRouter.performLogsOperation(username,
 					AuditEventType.AUTH_FAILURE,
 					"Authentication failed: " + e.getMessage()
 					);
@@ -85,7 +85,7 @@ public class UsernamePasswordAuthenticationProvider implements AuthenticationPro
 		catch (Exception ex) {
 			// Catch unexpected errors (NPE, DB down, etc.)
 			{
-				auditLogger.log(username,
+				auditLogRouter.performLogsOperation(username,
 						AuditEventType.AUTH_FAILURE,
 						"Authentication failed due to server error: " + ex.getClass().getSimpleName()
 						);

@@ -30,10 +30,10 @@ public final class SecurityPathRegistry  {
 			"/api/auth/login", "/api/auth/register"
 			);
 
-	// Authenticated-only paths (no specific role needed)
-	public static final List<String> AUTHENTICATED_API_PATHS = List.of(
-			"/api/auth/logout"
-			);
+	//	// Authenticated-only paths (no specific role needed)
+	//	public static final List<String> AUTHENTICATED_API_PATHS = List.of(
+	//			"/api/auth/logout"
+	//			);
 
 	// Role-based access control paths
 	public static final Map<String, List<String>> ROLE_BASED_API_PATHS = Map.of(
@@ -51,7 +51,7 @@ public final class SecurityPathRegistry  {
 
 		registerPermitAllEndpoints(registry);
 
-		registry.requestMatchers(AUTHENTICATED_API_PATHS.toArray(new String[0])).authenticated();
+		//registry.requestMatchers(AUTHENTICATED_API_PATHS.toArray(new String[0])).authenticated();
 
 		ROLE_BASED_API_PATHS.forEach((path, roles) ->
 		registry.requestMatchers(path).hasAnyRole(roles.toArray(String[]::new)));
@@ -93,7 +93,7 @@ public final class SecurityPathRegistry  {
 				);
 
 		logger.debug("[All Public Endpoint Paths :]  "+ allPublicPaths );
-		logger.debug("[All Authenticated Endpoint Paths :]  "+ AUTHENTICATED_API_PATHS);
+		//logger.debug("[All Authenticated Endpoint Paths :]  "+ AUTHENTICATED_API_PATHS);
 		logger.debug("[All Role Based API Paths :]  "+ ROLE_BASED_API_PATHS );
 
 
@@ -110,7 +110,7 @@ public final class SecurityPathRegistry  {
 
 		System.out.println(rowBorder);
 
-		AUTHENTICATED_API_PATHS.stream().forEach(t->System.out.printf(pattern, "AUTHENTICATED",t,"-"));
+		//AUTHENTICATED_API_PATHS.stream().forEach(t->System.out.printf(pattern, "AUTHENTICATED",t,"-"));
 
 		System.out.println(rowBorder);
 

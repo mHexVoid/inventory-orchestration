@@ -1,4 +1,4 @@
-package com.hexvoid.inv.orch.security.jwt;
+package com.hexvoid.inv.orch.security.service;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -8,18 +8,18 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
-import com.hexvoid.inv.orch.logs.service.AuditLogger;
+import com.hexvoid.inv.orch.logs.service.AuditLogRouter;
 import com.hexvoid.inv.orch.security.util.ApplicationAuthoritiesContext;
 
 @Component
-public class JwtAuthenticationSetter  {
+public class SpringAuthenticationSetter  {
 
 	public final ApplicationAuthoritiesContext applicationAuthoritiesContext;
-	public final AuditLogger auditLogger;
+	public final AuditLogRouter auditLogRouter;
 
-	public JwtAuthenticationSetter(ApplicationAuthoritiesContext applicationAuthoritiesContext ,AuditLogger auditLogger ) {
+	public SpringAuthenticationSetter(ApplicationAuthoritiesContext applicationAuthoritiesContext ,AuditLogRouter auditLogRouter ) {
 		this.applicationAuthoritiesContext=applicationAuthoritiesContext;
-		this.auditLogger=auditLogger;
+		this.auditLogRouter=auditLogRouter;
 	}
 
 	public void setAuthentication(String username, String authorities) {
@@ -33,7 +33,7 @@ public class JwtAuthenticationSetter  {
 		boolean authoritiesMatching = applicationAuthoritiesContext.isAuthoritiesMatching(authorities);
 
 		if(authoritiesMatching) {
-			auditLogger.log(username,
+			auditLogRouter.performLogsOperation(username,
 					AuditEventType.JWT_VALIDATION_ATTEMPT,
 					"User: " + username + " Authenticated Successfully"
 					);

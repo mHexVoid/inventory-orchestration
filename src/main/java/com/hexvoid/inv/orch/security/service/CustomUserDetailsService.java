@@ -15,21 +15,20 @@ import com.hexvoid.inv.orch.auth.entity.AppUser;
 import com.hexvoid.inv.orch.auth.service.UserAuthService;
 import com.hexvoid.inv.orch.exception.ResourceNotFoundException;
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
-import com.hexvoid.inv.orch.logs.service.AuditLogger;
+import com.hexvoid.inv.orch.logs.service.AuditLogRouter;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService{
 
 
 	private final UserAuthService userAuthService;
-	private final AuditLogger auditLoggger;
+	private final AuditLogRouter auditLogRouter;
 
 	Optional<AppUser> user;
 
-
-	public CustomUserDetailsService(UserAuthService userAuthService , AuditLogger auditLoggger) {
+	public CustomUserDetailsService(UserAuthService userAuthService , AuditLogRouter auditLogRouter) {
 		this.userAuthService = userAuthService;
-		this.auditLoggger = auditLoggger;
+		this.auditLogRouter = auditLogRouter;
 	}
 
 	/**
@@ -51,7 +50,7 @@ public class CustomUserDetailsService implements UserDetailsService{
 		try{
 			user = Optional.of(userAuthService.findByUserName(username));
 
-			auditLoggger.log(username,
+			auditLogRouter.performLogsOperation(username,
 					AuditEventType.AUTH_ATTEMPT,
 					"Login attempt for user: " + username
 					);
@@ -63,7 +62,7 @@ public class CustomUserDetailsService implements UserDetailsService{
 		}
 		catch(ResourceNotFoundException e){
 
-			auditLoggger.log(username,AuditEventType.AUTH_ATTEMPT,e.getMessage());
+			auditLogRouter.performLogsOperation(username,AuditEventType.AUTH_FAILURE,e.getMessage());
 
 			throw e;
 

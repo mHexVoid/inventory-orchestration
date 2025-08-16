@@ -19,6 +19,6 @@ public class UserResolverImpl implements UserResolver {
 	public AppUser resolve(String username) {
 		return userRepository.findByUsername(username);
 	}
-	
+
 
 }

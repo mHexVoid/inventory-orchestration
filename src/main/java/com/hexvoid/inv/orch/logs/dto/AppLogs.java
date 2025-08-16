@@ -2,7 +2,6 @@ package com.hexvoid.inv.orch.logs.dto;
 
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
 
-
 public class AppLogs {
 
 	private String username;

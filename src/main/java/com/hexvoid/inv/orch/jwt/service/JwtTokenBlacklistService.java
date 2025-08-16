@@ -1,4 +1,4 @@
-package com.hexvoid.inv.orch.security.service;
+package com.hexvoid.inv.orch.jwt.service;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;

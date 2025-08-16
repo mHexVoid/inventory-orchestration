@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletRequest;
 @Component
 public class HttpAuditContextProvider implements AuditContextProvider {
 
-
 	private final HttpServletRequest request;
 
 	HttpAuditContextProvider(HttpServletRequest request){

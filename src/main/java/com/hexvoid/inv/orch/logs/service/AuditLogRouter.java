@@ -10,18 +10,26 @@ import com.hexvoid.inv.orch.logs.context.AuditContextProvider;
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
 import com.hexvoid.inv.orch.security.util.SecurityPathRegistry;
 
+/*
+ * Purpose: This class is responsible for performing audit logging. 
+ * 
+ * Design Note: The class is structured to allow easy future enhancements. 
+ * If new audit events or logging behaviors need to be added or updated, 
+ * they can be implemented here without impacting other components.
+ */
+
 @Component
 public class AuditLogRouter  {
 
 	private final AuditLogger auditLogger;
 	private final AuditContextProvider auditContextProvider;
 	private final AntPathMatcher pathMatcher = new AntPathMatcher();
+	
 
 	private static String PATTERN ="| %-15s | %-30s | %-30s |%n";
 	private static String TABLE_ROW="+-----------------+--------------------------------+--------------------------------+";
 
-
-	List<String> authenticatedApiPaths = SecurityPathRegistry.AUTHENTICATED_API_PATHS;
+	//List<String> authenticatedApiPaths = SecurityPathRegistry.AUTHENTICATED_API_PATHS;
 	List<String> publicApiPaths = SecurityPathRegistry.PUBLIC_API_PATHS;
 	Map<String, List<String>> roleBasedApiPaths = SecurityPathRegistry.ROLE_BASED_API_PATHS;
 
@@ -52,43 +60,18 @@ public class AuditLogRouter  {
 	}
 
 	private void handleRoleBasedUri(String uri, String name, AuditEventType type, String msg) {
-
-		if(uriEquals(uri,"/api/products")) {
-
-			logDefault(name, type, msg);
-
-			auditLogger.log(name, type, msg);
-		}
-
 		logDefault(name, type, msg);
-
 		auditLogger.log(name, type, msg);
 	}
 
 	private void handleAuthenticatedUri(String uri, String name, AuditEventType type, String msg) {
-		if(uriEquals(uri,"/api/auth/logout")) {
-
-			logDefault(name, type, msg);
-
-			auditLogger.log(name, type, msg);
-		}
-
+		logDefault(name, type, msg);
+		auditLogger.log(name, type, msg);
 	}
 
 	private void handlePublicUri(String uri, String name, AuditEventType type, String msg) {
-		if(uriEquals(uri,"/api/auth/login")) {
-
-			logDefault(name, type, msg);
-
-			auditLogger.log(name, type, msg);
-		}
-		else if(uriEquals(uri,"/api/auth/register")) {
-
-			logDefault(name, type, msg);
-
-			auditLogger.log(name, type, msg);
-		}
-
+		logDefault(name, type, msg);
+		auditLogger.log(name, type, msg);
 	}
 
 	private boolean isRoleBasedUri(String uri) {
@@ -96,17 +79,17 @@ public class AuditLogRouter  {
 	}
 
 	private boolean isAuthenticatedUri(String uri) {
-		return authenticatedApiPaths.stream().anyMatch(path -> pathMatcher.match(path, uri));
+		//return authenticatedApiPaths.stream().anyMatch(path -> pathMatcher.match(path, uri));
+		return true;
 	}
 
 	private boolean isPublicUri(String uri) {
 		return publicApiPaths.stream().anyMatch(path -> pathMatcher.match(path, uri));
 	}
 
-	private boolean uriEquals(String incomingURI , String staticURI) {
-
-		return incomingURI.equals(staticURI);
-	}
+	//	private boolean uriEquals(String incomingURI , String staticURI) {
+	//		return incomingURI.equals(staticURI);
+	//	}
 
 	private void logDefault(String name, AuditEventType type, String msg) {
 

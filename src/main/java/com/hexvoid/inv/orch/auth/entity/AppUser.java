@@ -19,13 +19,13 @@ public class AppUser {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name="user_id")
 	private int id;
-	
+
 	@Column(name="user_name",unique = true,nullable = false)
 	private String username;
-	
+
 	@Column(name="email",unique = true,nullable = false)
 	private String email;
-	
+
 	@Column(name="pwd",nullable = false)
 	@JsonIgnore
 	private String password;
@@ -34,7 +34,7 @@ public class AppUser {
 	@Column(name="role")
 	private Roles role;
 
-	
+
 	public int getId() {
 		return id;
 	}

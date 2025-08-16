@@ -7,27 +7,26 @@ import com.hexvoid.inv.orch.auth.entity.Roles;
 import com.hexvoid.inv.orch.auth.repository.UserRepository;
 import com.hexvoid.inv.orch.exception.ApiException;
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
-import com.hexvoid.inv.orch.logs.service.AuditLogger;
+import com.hexvoid.inv.orch.logs.service.AuditLogRouter;
 
 @Service
 public class UserAuthServiceImpl implements UserAuthService {
 
 	private final UserRepository userRepository;
-	private final AuditLogger auditLogger;
+	private final AuditLogRouter auditLogRouter;
 
-	public UserAuthServiceImpl(UserRepository userRepository , AuditLogger auditLogger) {
+	public UserAuthServiceImpl(UserRepository userRepository , AuditLogRouter auditLogRouter) {
 		this.userRepository = userRepository;
-		this.auditLogger = auditLogger;
+		this.auditLogRouter = auditLogRouter;
 	}
 
 	@Override
 	public AppUser save(AppUser userCreds) {
 
-
 		validateDuplicateUser(userCreds);
 		resolveRole(userCreds);
 
-		auditLogger.log(
+		auditLogRouter.performLogsOperation(
 				null, // user not created yet
 				AuditEventType.USER_REGISTER_ATTEMPT,
 				"Attempting to save user: " + userCreds.getUsername()
@@ -45,7 +44,6 @@ public class UserAuthServiceImpl implements UserAuthService {
 	 */
 	@Override
 	public AppUser findByUserName(String name) {
-
 		AppUser appUser = userRepository.findByUsername(name);
 		return appUser;
 	}
@@ -53,10 +51,9 @@ public class UserAuthServiceImpl implements UserAuthService {
 
 	private void validateDuplicateUser(AppUser user) throws ApiException {
 
-
 		if (userRepository.existsByUsername(user.getUsername())) {
 
-			auditLogger.log(
+			auditLogRouter.performLogsOperation(
 					null, // user not created yet
 					AuditEventType.USER_REGISTER_FAILED,
 					"Duplicate username found: " + user.getUsername()
@@ -67,7 +64,7 @@ public class UserAuthServiceImpl implements UserAuthService {
 
 		if (userRepository.existsByEmail(user.getEmail())) {
 
-			auditLogger.log(
+			auditLogRouter.performLogsOperation(
 					null, // user not created yet
 					AuditEventType.USER_REGISTER_FAILED,
 					"Duplicate email found: " + user.getEmail()
@@ -79,20 +76,20 @@ public class UserAuthServiceImpl implements UserAuthService {
 
 	private  void resolveRole(AppUser user) {
 
-		if (user.getEmail().endsWith("@hexvoid.com") || user.getEmail().endsWith("@kychub.com")) {
+		if (user.getEmail().endsWith("@hexvoid.com") || user.getEmail().endsWith("@apix.com")) {
+
 			user.setRoles(Roles.ADMIN);
 
-			auditLogger.log(
+			auditLogRouter.performLogsOperation(
 					null, // user not created yet
 					AuditEventType.USER_REGISTER_ATTEMPT,
 					"User " + user.getUsername() + " assigned role ADMIN based on email domain"
 					);
 
-
 		} else {
 			user.setRoles(Roles.USER);
 
-			auditLogger.log(
+			auditLogRouter.performLogsOperation(
 					null, // user not created yet
 					AuditEventType.USER_REGISTER_ATTEMPT,
 					"User " + user.getUsername() + " assigned role USER based on email domain"

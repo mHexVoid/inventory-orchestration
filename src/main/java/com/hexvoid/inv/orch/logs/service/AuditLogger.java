@@ -7,7 +7,7 @@ import com.hexvoid.inv.orch.logs.entity.AuditEventType;
 
 @Component
 public class AuditLogger {
-	
+
 	private final AuditLogService auditLogService;
 
 	public AuditLogger(AuditLogService auditLogService) {
@@ -17,6 +17,6 @@ public class AuditLogger {
 	public void log(String username, AuditEventType eventType, String message) {
 		auditLogService.logEvent(AppLogs.of(username, eventType, message));
 	}
-	
-	
+
+
 }

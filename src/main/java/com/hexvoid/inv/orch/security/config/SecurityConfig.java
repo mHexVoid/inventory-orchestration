@@ -12,9 +12,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
-import com.hexvoid.inv.orch.security.UsernamePasswordAuthenticationProvider;
+import com.hexvoid.inv.orch.jwt.filter.JWTTokenValidatorFilter;
+import com.hexvoid.inv.orch.jwt.handler.JwtLogoutHandler;
+import com.hexvoid.inv.orch.jwt.handler.JwtLogoutSuccessHandler;
 import com.hexvoid.inv.orch.security.filter.CorrelationIdFilter;
-import com.hexvoid.inv.orch.security.filter.JWTTokenValidatorFilter;
+import com.hexvoid.inv.orch.security.provider.UsernamePasswordAuthenticationProvider;
 import com.hexvoid.inv.orch.security.service.CustomUserDetailsService;
 import com.hexvoid.inv.orch.security.util.SecurityPathRegistry;
 
@@ -25,12 +27,18 @@ public class SecurityConfig {
 
 	private final JWTTokenValidatorFilter jwtTokenValidatorFilter;
 	private final CorrelationIdFilter correlationIdFilter;
+	private final JwtLogoutHandler jwtLogoutHandler;
+	private final JwtLogoutSuccessHandler jwtLogoutSuccessHandler;
 
-	SecurityConfig(JWTTokenValidatorFilter jwtTokenValidatorFilter,CorrelationIdFilter correlationIdFilter) {
-		this.correlationIdFilter=correlationIdFilter;
-		this.jwtTokenValidatorFilter=jwtTokenValidatorFilter;
+	public SecurityConfig(JWTTokenValidatorFilter jwtTokenValidatorFilter, CorrelationIdFilter correlationIdFilter,
+			JwtLogoutHandler jwtLogoutHandler, JwtLogoutSuccessHandler jwtLogoutSuccessHandler) {
 
+		this.jwtTokenValidatorFilter = jwtTokenValidatorFilter;
+		this.correlationIdFilter = correlationIdFilter;
+		this.jwtLogoutHandler = jwtLogoutHandler;
+		this.jwtLogoutSuccessHandler = jwtLogoutSuccessHandler;
 	}
+
 	/**
 	 * Creates a {@link PasswordEncoder} bean using Spring Security's {@code DelegatingPasswordEncoder}.
 	 * <p>
@@ -114,13 +122,17 @@ public class SecurityConfig {
 
 
 		//is required for JWT if yes then why?
-		http.addFilterBefore(jwtTokenValidatorFilter, BasicAuthenticationFilter.class );
+		http.addFilterBefore(jwtTokenValidatorFilter, BasicAuthenticationFilter.class )
+		.logout(logout -> logout
+				.logoutUrl("/api/auth/logout")
+				.addLogoutHandler(jwtLogoutHandler)
+				.logoutSuccessHandler(jwtLogoutSuccessHandler)
+				.permitAll()
+				);
 		http.addFilterBefore(correlationIdFilter, JWTTokenValidatorFilter.class);
 		http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 		http.csrf(c->c.disable());
 
 		return http.build();
-
 	}
-
 }

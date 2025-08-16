@@ -1,20 +1,18 @@
-package com.hexvoid.inv.orch.security.filter;
+package com.hexvoid.inv.orch.jwt.filter;
 
 import java.io.IOException;
+
+import javax.crypto.SecretKey;
 
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.hexvoid.inv.orch.logs.context.AuditContext;
-import com.hexvoid.inv.orch.logs.context.AuditContextProvider;
+import com.hexvoid.inv.orch.jwt.constants.ApplicationConstants;
+import com.hexvoid.inv.orch.jwt.service.JwtService;
 import com.hexvoid.inv.orch.logs.entity.AuditEventType;
 import com.hexvoid.inv.orch.logs.service.AuditLogRouter;
-import com.hexvoid.inv.orch.logs.service.AuditLogger;
-import com.hexvoid.inv.orch.security.jwt.JwtAuthenticationSetter;
-import com.hexvoid.inv.orch.security.jwt.JwtHeaderExtractor;
-import com.hexvoid.inv.orch.security.jwt.JwtService;
-import com.hexvoid.inv.orch.security.jwt.JwtTokenBlacklistChecker;
+import com.hexvoid.inv.orch.security.service.SpringAuthenticationSetter;
 import com.hexvoid.inv.orch.security.util.PathExclusionMatcher;
 
 import io.jsonwebtoken.Claims;
@@ -42,24 +40,15 @@ import jakarta.servlet.http.HttpServletResponse;
 public class JWTTokenValidatorFilter extends OncePerRequestFilter {
 
 	private final JwtService jwtService;
-	private final JwtHeaderExtractor headerExtractor;
-	private final JwtTokenBlacklistChecker blacklistChecker;
-	private final JwtAuthenticationSetter authSetter;
-	private final AuditLogger auditLogger;
-	private final AuditContextProvider auditContextProvider;
+	private final SpringAuthenticationSetter springauthSetter;
 	private final AuditLogRouter auditLogRouter;
+	//private final AuditContextProvider auditContextProvider;
 
-
-	public JWTTokenValidatorFilter(JwtTokenBlacklistChecker blacklistChecker,JwtService jwtService, 
-			JwtHeaderExtractor headerExtractor,JwtAuthenticationSetter authSetter,
-			AuditLogger auditLogger,AuditContextProvider auditContextProvider,AuditLogRouter auditLogRouter) {
+	public JWTTokenValidatorFilter(JwtService jwtService, SpringAuthenticationSetter springauthSetter,
+			AuditLogRouter auditLogRouter) {
 		this.jwtService = jwtService;
-		this.headerExtractor = headerExtractor;
-		this.blacklistChecker = blacklistChecker;
-		this.authSetter = authSetter;
-		this.auditLogger = auditLogger;
-		this.auditContextProvider=auditContextProvider;
-		this.auditLogRouter=auditLogRouter;
+		this.springauthSetter = springauthSetter;
+		this.auditLogRouter = auditLogRouter;
 	}
 
 	/**
@@ -76,78 +65,50 @@ public class JWTTokenValidatorFilter extends OncePerRequestFilter {
 	 * @throws IOException      if an input/output error occurs
 	 */
 
-
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
 			throws ServletException, IOException {
 
 		String email = null;
-		String currentUri = auditContextProvider.getContext().getUri();
-		boolean compareUriState = isCurrentUriEqual(currentUri,"/api/auth/logout");
+		String header = request.getHeader(ApplicationConstants.JWT_HEADER_NAME);
 
 		try {
 			// Step 1: Extract the JWT token from the Authorization header
-			String token = headerExtractor.extract(request);
+			String token = jwtService.extractToken(header);
 
 			//Step 2: Retrieve secret key from environment or fallback default
 			// && Parse and validate the JWT token
-			Claims claims = jwtService.parseClaims(token);
+			SecretKey sercetKey = jwtService.getSigningKey();
 
-			//Step 3 : Extract user information and authorities from the token 
-			email = String.valueOf(claims.get("email"));
-			String authorities = String.valueOf(claims.get("authorities"));
+			Claims claims = jwtService.parseAndValidate(token, sercetKey);
 
-			auditLogRouter.performLogsOperation(email, AuditEventType.JWT_LOGOUT_ATTEMPT,"Logout attempt for User: : "+ email);
+			//Step 3 : Extract user information and authorities from the Claim
+			/***
+			 * email = String.valueOf(claims.get("email"));
+			 * String authorities = String.valueOf(claims.get("authorities"));
+			 */
 
-			if(compareUriState) {
-				auditLogger.log(email, 
-						AuditEventType.JWT_LOGOUT_ATTEMPT,
-						"Logout attempt for User: : "+ email);
-			}
+			email = jwtService.getEmail(claims);
+			String authorities = jwtService.getAuthorities(claims);
 
-			//Step 4 : Find The UserName for Logging Purpose
+			//Step 4 : Get The UserName for Logging Purpose
+			// @NOTE : Centralized the logic to get USER Entity Under the Logger : to Minimize multiple calls to DB
 			//appUser = Optional.of(userAuthService.findByUserName(email));
 
 			auditLogRouter.performLogsOperation(email, AuditEventType.JWT_VALIDATION_ATTEMPT,"Validating JWT for  "+ email);
 
+			//Step 5 : Check if Token is BlackListed
+			jwtService.validateNotBlacklisted(token);
 
-			auditLogger.log(email, AuditEventType.JWT_VALIDATION_ATTEMPT,
-					"Validating JWT for " + email);
-
-			//Step 6 : Check if Token is BlackListed
-			blacklistChecker.check(token);
-
-			//Step 7 : Set The Authentication in Spring Context
-			authSetter.setAuthentication(email, authorities);
+			//Step 6 : Set The Authentication in Spring Context
+			springauthSetter.setAuthentication(email, authorities);
 
 			auditLogRouter.performLogsOperation(email, AuditEventType.JWT_VALIDATION_SUCCESS,"JWT validation succeeded for  "+ email);
 
 
-			auditLogger.log(email, AuditEventType.JWT_VALIDATION_SUCCESS,
-					"JWT validation succeeded for " +email);
-
-
-			if(compareUriState) {
-				auditLogger.log(email, 
-						AuditEventType.JWT_LOGOUT_SUCCESS,
-						"Logout successfull for User: : "+ email);
-			}
-
-			auditLogRouter.performLogsOperation(email, AuditEventType.JWT_LOGOUT_SUCCESS,"Logout successfull for User:  "+ email);
-
-
 		} catch (Exception ex) {
 
-			AuditEventType type = compareUriState ?
-					AuditEventType.JWT_LOGOUT_FAILURE 
-					: AuditEventType.JWT_VALIDATION_FAILURE;
-
-			auditLogRouter.performLogsOperation(email, AuditEventType.JWT_LOGOUT_FAILURE,ex.getMessage());
 			auditLogRouter.performLogsOperation(email, AuditEventType.JWT_VALIDATION_FAILURE,ex.getMessage());
-
-
-			auditLogger.log(email, type, ex.getMessage());
-
 			throw new AuthorizationDeniedException(ex.getMessage());
 		}
 
@@ -155,18 +116,19 @@ public class JWTTokenValidatorFilter extends OncePerRequestFilter {
 		filterChain.doFilter(request, response);
 	}
 
+
 	/**
 	 * This method decides whether this filter should be applied to the current request.
 	 *
 	 * <p>
-	 * <strong>Logic:</strong> Skip this filter for the <code>/user/details</code> endpoint,
+	 * <strong>Logic:</strong> Skip this filter for the <code>PathExclusionMatcher</code> endpoint,
 	 * since that’s where we generate the token — applying validation there would interfere.
 	 * </p>
 	 *
 	 * <pre>
 	 * Example:
-	 * - Request to /user/details  → return true  → filter is skipped ❌
-	 * - Request to /leave/apply   → return false → filter runs ✅
+	 * - Request to endpoint  → return true  → filter is skipped 
+	 * - Request to endpoint  → return false → filter runs 
 	 * </pre>
 	 *
 	 * @param request the current HTTP request

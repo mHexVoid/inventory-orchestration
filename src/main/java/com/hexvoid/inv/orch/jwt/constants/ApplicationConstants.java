@@ -1,4 +1,4 @@
-package com.hexvoid.inv.orch.constants;
+package com.hexvoid.inv.orch.jwt.constants;
 
 
 /**
