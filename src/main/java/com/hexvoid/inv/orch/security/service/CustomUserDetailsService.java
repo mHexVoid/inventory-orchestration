@@ -48,7 +48,7 @@ public class CustomUserDetailsService implements UserDetailsService{
 
 
 		try{
-			user = Optional.of(userAuthService.findByUserName(username));
+			user = Optional.ofNullable(userAuthService.findByUserName(username));
 
 			auditLogRouter.performLogsOperation(username,
 					AuditEventType.AUTH_ATTEMPT,
